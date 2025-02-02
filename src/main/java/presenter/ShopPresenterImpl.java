@@ -81,23 +81,49 @@ public class ShopPresenterImpl implements ShopPresenter {
 
 
     @Override
-    public void register(String firstName, String lastName, String phoneNumber, String email, String password, int addressId) {
-        try (Connection conn = DatabaseConnection.getConnection("administrator");
-             PreparedStatement stmt = conn.prepareStatement(
-                     "INSERT INTO Uzytkownik (Imie, Nazwisko, Numer_telefonu, Email, Haslo, Id_adresu) VALUES (?, ?, ?, ?, ?, ?)")) {
-            stmt.setString(1, firstName);
-            stmt.setString(2, lastName);
-            stmt.setString(3, phoneNumber);
-            stmt.setString(4, email);
-            stmt.setString(5, password);
-            stmt.setInt(6, addressId);
-            stmt.executeUpdate();
+    public void register(String firstName, String lastName, String phoneNumber, String email, String password, String city, String street, String buildingNumber, String apartmentNumber, String postalCode, String country) {
+        try (Connection conn = DatabaseConnection.getConnection("administrator")) {
+            conn.setAutoCommit(false); // Rozpocznij transakcję
+
+            // Wstawienie nowego adresu do tabeli Adresy
+            String insertAddressQuery = "INSERT INTO Adresy (Miasto, Ulica, Numer_budynku, Numer_mieszkania, Kod_pocztowy, Kraj) VALUES (?, ?, ?, ?, ?, ?) RETURNING Id_adresu";
+            int addressId;
+            try (PreparedStatement addressStmt = conn.prepareStatement(insertAddressQuery)) {
+                addressStmt.setString(1, city);
+                addressStmt.setString(2, street);
+                addressStmt.setString(3, buildingNumber);
+                addressStmt.setString(4, apartmentNumber);
+                addressStmt.setString(5, postalCode);
+                addressStmt.setString(6, country);
+
+                ResultSet addressResult = addressStmt.executeQuery();
+                if (addressResult.next()) {
+                    addressId = addressResult.getInt("Id_adresu");
+                } else {
+                    throw new SQLException("Nie udało się dodać adresu.");
+                }
+            }
+
+            // Wstawienie użytkownika do tabeli Uzytkownik
+            String insertUserQuery = "INSERT INTO Uzytkownik (Imie, Nazwisko, Numer_telefonu, Email, Haslo, Id_adresu) VALUES (?, ?, ?, ?, ?, ?)";
+            try (PreparedStatement userStmt = conn.prepareStatement(insertUserQuery)) {
+                userStmt.setString(1, firstName);
+                userStmt.setString(2, lastName);
+                userStmt.setString(3, phoneNumber);
+                userStmt.setString(4, email);
+                userStmt.setString(5, password);
+                userStmt.setInt(6, addressId);
+                userStmt.executeUpdate();
+            }
+
+            conn.commit(); // Zatwierdź transakcję
             view.showMessage("Rejestracja zakończona sukcesem");
         } catch (SQLException e) {
             e.printStackTrace();
             view.showMessage("Błąd rejestracji.");
         }
     }
+
 
     @Override
     public void browseProducts() {

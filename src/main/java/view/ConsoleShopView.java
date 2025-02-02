@@ -160,10 +160,20 @@ public class ConsoleShopView implements ShopView {
                     String email = scanner.nextLine();
                     System.out.print("Podaj hasło: ");
                     String password = scanner.nextLine();
-                    System.out.print("Podaj ID adresu: ");
-                    int addressId = scanner.nextInt();
-                    scanner.nextLine(); // Usuwanie znaku nowej linii
-                    presenter.register(firstName, lastName, phoneNumber, email, password, addressId);
+                    System.out.print("Podaj miasto: ");
+                    String city = scanner.nextLine();
+                    System.out.print("Podaj ulicę: ");
+                    String street = scanner.nextLine();
+                    System.out.print("Podaj numer budynku: ");
+                    String buildingNumber = scanner.nextLine();
+                    System.out.print("Podaj numer mieszkania (opcjonalnie): ");
+                    String apartmentNumber = scanner.nextLine();
+                    System.out.print("Podaj kod pocztowy (XX-XXX): ");
+                    String postalCode = scanner.nextLine();
+                    System.out.print("Podaj kraj: ");
+                    String country = scanner.nextLine();
+                    presenter.register(firstName, lastName, phoneNumber, email, password, city, street, buildingNumber, apartmentNumber, postalCode, country);
+
                 }
                 case 3-> {
                     presenter.browseProducts();

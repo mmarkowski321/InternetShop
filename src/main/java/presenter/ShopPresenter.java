@@ -3,7 +3,7 @@ package presenter;
 public interface ShopPresenter {
     void loginUser(String email, String password, String role);
     void loginAdmin(String email, String password, String role);
-    void register(String firstName, String lastName, String phoneNumber, String email, String password, int addressId);
+    void register(String firstName, String lastName, String phoneNumber, String email, String password, String city, String street, String buildingNumber, String apartmentNumber, String postalCode, String country);
     void browseProducts();
     void addToCart(int userId, int productId, int quantity);
     void viewCart(int userId);
