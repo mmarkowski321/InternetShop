@@ -267,33 +267,164 @@ public class ShopPresenterImpl implements ShopPresenter {
 
     @Override
     public void manageProducts() {
-        view.showMessage("\nZarządzanie produktami:");
-        view.showMessage("1. Dodaj nowy produkt");
-        view.showMessage("2. Powrót");
-        view.showMessage("Wybierz opcję: ");
-        int choice = scanner.nextInt();
-        scanner.nextLine();
-
-        if (choice == 1) {
-            System.out.print("Podaj nazwę produktu: ");
-            String productName = scanner.nextLine();
-            System.out.print("Podaj opis produktu: ");
-            String productDescription = scanner.nextLine();
-            System.out.print("Podaj cenę produktu: ");
-            float price = scanner.nextFloat();
-            System.out.print("Podaj ID kategorii produktu: ");
-            int categoryId = scanner.nextInt();
-            System.out.print("Podaj ID zdjęcia produktu (lub 0, jeśli brak): ");
-            int imageId = scanner.nextInt();
+        while (true) {
+            view.showMessage("\nZarządzanie produktami:");
+            view.showMessage("1. Dodaj nowy produkt");
+            view.showMessage("2. Dodaj nową kategorię");
+            view.showMessage("3. Edytuj istniejący produkt");
+            view.showMessage("4. Powrót");
+            view.showMessage("Wybierz opcję: ");
+            int choice = scanner.nextInt();
             scanner.nextLine();
 
-            addNewProduct(productName, productDescription, price, categoryId, imageId);
-        } else if (choice == 2) {
-            view.showMessage("Powrót do menu administratora.");
-        } else {
-            view.showMessage("Niepoprawna opcja.");
+            switch (choice) {
+                case 1 -> {
+                    // Wyświetlenie dostępnych kategorii
+                    try (Connection conn = DatabaseConnection.getConnection("administrator");
+                         PreparedStatement stmt = conn.prepareStatement("SELECT Id_kategorii, Nazwa_kategorii FROM Kategorie")) {
+                        ResultSet rs = stmt.executeQuery();
+                        view.showMessage("Dostępne kategorie:");
+                        while (rs.next()) {
+                            int id = rs.getInt("Id_kategorii");
+                            String name = rs.getString("Nazwa_kategorii");
+                            view.showMessage("ID: " + id + ", Nazwa: " + name);
+                        }
+                    } catch (SQLException e) {
+                        e.printStackTrace();
+                        view.showMessage("Błąd podczas pobierania kategorii: " + e.getMessage());
+                        return;
+                    }
+
+                    // Kontynuowanie dodawania nowego produktu
+                    System.out.print("Podaj nazwę produktu: ");
+                    String productName = scanner.nextLine();
+                    System.out.print("Podaj opis produktu: ");
+                    String productDescription = scanner.nextLine();
+                    System.out.print("Podaj cenę produktu: ");
+                    float price = scanner.nextFloat();
+                    System.out.print("Podaj ID kategorii produktu: ");
+                    int categoryId = scanner.nextInt();
+                    System.out.print("Podaj ID zdjęcia produktu (lub 0, jeśli brak): ");
+                    int imageId = scanner.nextInt();
+                    scanner.nextLine();
+
+                    addNewProduct(productName, productDescription, price, categoryId, imageId);
+                }
+                case 2 -> {
+                    // Wyświetlenie dostępnych kategorii przed dodaniem nowej
+                    try (Connection conn = DatabaseConnection.getConnection("administrator");
+                         PreparedStatement stmt = conn.prepareStatement("SELECT Id_kategorii, Nazwa_kategorii FROM Kategorie")) {
+                        ResultSet rs = stmt.executeQuery();
+                        view.showMessage("Aktualne kategorie:");
+                        while (rs.next()) {
+                            int id = rs.getInt("Id_kategorii");
+                            String name = rs.getString("Nazwa_kategorii");
+                            view.showMessage("ID: " + id + ", Nazwa: " + name);
+                        }
+                    } catch (SQLException e) {
+                        e.printStackTrace();
+                        view.showMessage("Błąd podczas pobierania kategorii: " + e.getMessage());
+                        return;
+                    }
+
+                    // Dodawanie nowej kategorii
+                    System.out.print("Podaj nazwę nowej kategorii: ");
+                    String categoryName = scanner.nextLine();
+                    addCategory(categoryName);
+                }
+                case 3 -> {
+                    // Wyświetlenie wszystkich produktów
+                    try (Connection conn = DatabaseConnection.getConnection("administrator");
+                         PreparedStatement stmt = conn.prepareStatement("SELECT Id_produktu, Nazwa_produktu, Opis, Cena FROM Produkty")) {
+                        ResultSet rs = stmt.executeQuery();
+                        view.showMessage("Dostępne produkty:");
+                        while (rs.next()) {
+                            int id = rs.getInt("Id_produktu");
+                            String name = rs.getString("Nazwa_produktu");
+                            String description = rs.getString("Opis");
+                            float price = rs.getFloat("Cena");
+                            view.showMessage("ID: " + id + ", Nazwa: " + name + ", Opis: " + description + ", Cena: " + price);
+                        }
+                    } catch (SQLException e) {
+                        e.printStackTrace();
+                        view.showMessage("Błąd podczas pobierania produktów: " + e.getMessage());
+                        return;
+                    }
+
+                    // Edytowanie istniejącego produktu
+                    System.out.print("Podaj ID produktu, który chcesz edytować: ");
+                    int productId = scanner.nextInt();
+                    scanner.nextLine();
+                    editProduct(productId);
+                }
+                case 4 -> {
+                    view.showMessage("Powrót do menu administratora.");
+                    return;
+                }
+                default -> view.showMessage("Niepoprawna opcja.");
+            }
         }
     }
+
+    @Override
+    public void editProduct(int productId) {
+        try (Connection conn = DatabaseConnection.getConnection("administrator")) {
+            // Wyświetlenie aktualnych danych produktu
+            String selectQuery = "SELECT Nazwa_produktu, Opis, Cena FROM Produkty WHERE Id_produktu = ?";
+            try (PreparedStatement selectStmt = conn.prepareStatement(selectQuery)) {
+                selectStmt.setInt(1, productId);
+                ResultSet rs = selectStmt.executeQuery();
+                if (rs.next()) {
+                    String currentName = rs.getString("Nazwa_produktu");
+                    String currentDescription = rs.getString("Opis");
+                    float currentPrice = rs.getFloat("Cena");
+
+                    view.showMessage("Aktualne dane produktu:");
+                    view.showMessage("Nazwa: " + currentName);
+                    view.showMessage("Opis: " + currentDescription);
+                    view.showMessage("Cena: " + currentPrice);
+
+                    // Pobranie nowych wartości od użytkownika
+                    System.out.print("Podaj nową nazwę produktu (lub zostaw puste, aby nie zmieniać): ");
+                    String newName = scanner.nextLine();
+                    if (newName.isEmpty()) newName = currentName;
+
+                    System.out.print("Podaj nowy opis produktu (lub zostaw puste, aby nie zmieniać): ");
+                    String newDescription = scanner.nextLine();
+                    if (newDescription.isEmpty()) newDescription = currentDescription;
+
+                    System.out.print("Podaj nową cenę produktu (lub wpisz 0, aby nie zmieniać): ");
+                    float newPrice = scanner.nextFloat();
+                    scanner.nextLine();
+                    if (newPrice == 0) newPrice = currentPrice;
+
+                    // Aktualizacja danych produktu
+                    String updateQuery = "UPDATE Produkty SET Nazwa_produktu = ?, Opis = ?, Cena = ? WHERE Id_produktu = ?";
+                    try (PreparedStatement updateStmt = conn.prepareStatement(updateQuery)) {
+                        updateStmt.setString(1, newName);
+                        updateStmt.setString(2, newDescription);
+                        updateStmt.setFloat(3, newPrice);
+                        updateStmt.setInt(4, productId);
+
+                        int rowsUpdated = updateStmt.executeUpdate();
+                        if (rowsUpdated > 0) {
+                            view.showMessage("Produkt został zaktualizowany pomyślnie!");
+                        } else {
+                            throw new RuntimeException("Nie udało się zaktualizować produktu.");
+                        }
+                    }
+                } else {
+                    view.showMessage("Nie znaleziono produktu o podanym ID.");
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            throw new RuntimeException("Błąd podczas edytowania produktu: " + e.getMessage());
+        }
+    }
+
+
+
 
     @Override
     public void addNewProduct(String productName, String productDescription, float price, int categoryId, Integer imageId) {
@@ -327,6 +458,31 @@ public class ShopPresenterImpl implements ShopPresenter {
             throw new RuntimeException("Błąd podczas dodawania nowego produktu: " + e.getMessage());
         }
     }
+
+
+
+    @Override
+    public void addCategory(String categoryName) {
+        String insertQuery = "INSERT INTO Kategorie (Nazwa_kategorii) VALUES (?)";
+
+        try (Connection conn = DatabaseConnection.getConnection("administrator");
+             PreparedStatement stmt = conn.prepareStatement(insertQuery)) {
+
+            // Ustawianie parametrów zapytania
+            stmt.setString(1, categoryName);
+
+            int rowsInserted = stmt.executeUpdate();
+            if (rowsInserted > 0) {
+                view.showMessage("Kategoria została dodana pomyślnie!");
+            } else {
+                throw new RuntimeException("Nie udało się dodać kategorii.");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            throw new RuntimeException("Błąd podczas dodawania kategorii: " + e.getMessage());
+        }
+    }
+
 
 
 

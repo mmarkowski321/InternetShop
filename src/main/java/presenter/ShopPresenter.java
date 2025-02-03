@@ -17,5 +17,6 @@ public interface ShopPresenter {
     void browseOrders();
     void updateOrderStatus(int orderId, int newStatus);
     void generateSalesReport(String startDate, String endDate);
-
+    void addCategory(String categoryName);
+    void editProduct(int productId);
 }
